@@ -1,0 +1,8 @@
+.venv/
+vendor/
+images/*.bin
+images/*.BIN
+raporty/
+__pycache__/
+*.pyc
+*.png
