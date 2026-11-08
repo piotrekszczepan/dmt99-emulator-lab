@@ -33,16 +33,21 @@ except ImportError as exc:
     ) from exc
 
 
-DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL_CODE.BIN"
+STOCK_FW = RESEARCH / "DMT-99_V2.4_20240306.bin"
+STOCK_FLASH = RESEARCH / "flashdump" / "dmt99_flash_1.bin"
+
+DEFAULT_FW = PACKAGE / "DMT-99_V2.4_PL_ONLY_LABELS.BIN"
 if not DEFAULT_FW.is_file():
-    DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL.BIN"
-DEFAULT_FLASH = PACKAGE / "DMT99_W25Q64_V2.4_PL_REFERENCE.bin"
+    DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL_ONLY_LOCKED.BIN"
+if not DEFAULT_FW.is_file():
+    DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL_CODE.BIN"
+DEFAULT_FLASH = STOCK_FLASH
+if not DEFAULT_FLASH.is_file():
+    DEFAULT_FLASH = PACKAGE / "DMT99_W25Q64_V2.4_PL_REFERENCE.bin"
 if not DEFAULT_FW.is_file():
     DEFAULT_FW = APP_DIR / "images" / "DMT99_firmware.bin"
 if not DEFAULT_FLASH.is_file():
     DEFAULT_FLASH = APP_DIR / "images" / "DMT99_W25Q64.bin"
-STOCK_FW = RESEARCH / "DMT-99_V2.4_20240306.bin"
-STOCK_FLASH = RESEARCH / "flashdump" / "dmt99_flash_1.bin"
 
 LANGUAGES = [
     ("2 — polski (miejsce niemieckiego)", 2),
@@ -87,9 +92,12 @@ def display_text(value: float) -> str:
 def emulator_state(emu: Ch32Emulator):
     try:
         settings = bytes(emu.uc.mem_read(0x20000020, 64))
-        language = int.from_bytes(settings[30:32], "little") & 7
+        packed = int.from_bytes(settings[30:32], "little")
+        language = packed & 7
+        layout = (packed >> 10) & 3
     except Exception:
         language = None
+        layout = None
     try:
         prefix = bytes(emu.uc.mem_read(0x20000298, 48)).split(b"\0")[0].decode("ascii", "replace")
     except Exception:
@@ -99,6 +107,7 @@ def emulator_state(emu: Ch32Emulator):
         "halted": emu.halted,
         "main_loop_entered": emu.loop_entered,
         "language_index": language,
+        "layout_index": layout,
         "resource_prefix": prefix,
         "panel_commands": len(emu.panel.commands),
         "pixels": emu.panel.pixels,
@@ -120,7 +129,7 @@ class LabApp:
         self.messages = queue.Queue()
         self.busy = False
         self.photo = None
-        root.title("DMT-99 Emulator Lab")
+        root.title("Laboratorium emulatora DMT-99")
         root.minsize(1120, 760)
         root.geometry("1450x1020")
 
@@ -132,7 +141,7 @@ class LabApp:
 
         outer = ttk.Frame(root, padding=14)
         outer.pack(fill="both", expand=True)
-        ttk.Label(outer, text="DMT-99 Emulator Lab", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(outer, text="Laboratorium emulatora DMT-99", style="Title.TLabel").pack(anchor="w")
         ttk.Label(outer, text="Emulacja oryginalnego kodu RV32 V2.4: CH32V303, W25Q64, UART, przyciski i ST7789").pack(anchor="w", pady=(0, 10))
 
         body = ttk.Frame(outer)
@@ -293,7 +302,7 @@ class LabApp:
         tests = ttk.LabelFrame(parent, text="Testy", padding=10)
         tests.pack(fill="x", pady=(10, 0))
         ttk.Button(tests, text="Szybki test bieżącego firmware", command=self.quick_test).pack(fill="x")
-        ttk.Button(tests, text="Regresja angielska: oryginał ↔ bieżący", command=self.english_regression).pack(fill="x", pady=(5, 0))
+        ttk.Button(tests, text="Test blokady: tylko polski + Motyw 1", command=self.polish_lock_test).pack(fill="x", pady=(5, 0))
         ttk.Button(tests, text="Zapisz zrzut PNG…", command=self.save_png).pack(fill="x", pady=(5, 0))
         ttk.Button(tests, text="Krótka instrukcja", command=self.show_help).pack(fill="x", pady=(5, 0))
 
@@ -355,9 +364,9 @@ class LabApp:
         state = payload.get("state", payload) if isinstance(payload, dict) else {}
         if isinstance(state, dict) and "framebuffer_sha256" in state:
             self.status.set(
-                f"fault={state['fault']} | halted={state['halted']} | loop={state['main_loop_entered']}\n"
-                f"language={state['language_index']} | path={state['resource_prefix']} | "
-                f"pixels={state['pixels']}\nsha={state['framebuffer_sha256']}"
+                f"blad={state['fault']} | zatrzymany={state['halted']} | petla={state['main_loop_entered']}\n"
+                f"jezyk={state['language_index']} | motyw={state['layout_index']} | katalog={state['resource_prefix']} | "
+                f"piksele={state['pixels']}\nsha={state['framebuffer_sha256']}"
             )
         else:
             self.status.set(f"Stan: {label} zakończony")
@@ -458,26 +467,25 @@ class LabApp:
             return result
         self._task("Szybki test", action)
 
-    def english_regression(self):
+    def polish_lock_test(self):
         def action():
-            fw, flash = self._paths(); fixture = settings_image(view=1, english=1)
-            stock = Ch32Emulator(original=True, bin_path=STOCK_FW, flash_dump=STOCK_FLASH,
-                                 settings=fixture, battery_raw=battery_raw(87))
-            stock.run(seconds=4)
+            fw, flash = self._paths()
+            fixture = settings_image(view=1, layout=1, english=1)
             candidate = Ch32Emulator(original=True, bin_path=fw, flash_dump=flash,
                                      settings=fixture, battery_raw=battery_raw(87))
             candidate.run(seconds=4)
-            a, b = emulator_state(stock), emulator_state(candidate)
-            passed = a["fault"] is None and b["fault"] is None and \
-                     a["framebuffer_sha256"] == b["framebuffer_sha256"] and \
-                     a["uart_packets"] == b["uart_packets"]
-            report = {"test": "english_regression", "pass": passed, "stock": a, "candidate": b}
+            state = emulator_state(candidate)
+            passed = state["fault"] is None and not state["halted"] and \
+                     state["main_loop_entered"] and state["language_index"] == 2 and \
+                     state["layout_index"] == 0 and state["resource_prefix"] == "menu/german/"
+            report = {"test": "polish_lock", "pass": passed, "candidate": state,
+                      "initial_fixture": {"language": 1, "layout": 1}}
             self._save_report(report)
             self.emu = candidate
-            result = self._snapshot(f"Regresja angielska: {'PASS' if passed else 'FAIL'}; raport zapisany.")
+            result = self._snapshot(f"Blokada polskiego i Motywu 1: {'PASS' if passed else 'FAIL'}; raport zapisany.")
             result["test"] = report
             return result
-        self._task("Regresja angielska", action)
+        self._task("Test blokady polskiego", action)
 
     def _save_report(self, report):
         folder = APP_DIR / "raporty"; folder.mkdir(exist_ok=True)
@@ -495,7 +503,7 @@ class LabApp:
     def show_help(self):
         from tkinter import messagebox
         messagebox.showinfo(
-            "DMT-99 Emulator Lab — instrukcja",
+            "Laboratorium emulatora DMT-99 — instrukcja",
             "1. Wskaż firmware BIN i obraz W25Q64.\n"
             "2. Wybierz pierwszy start albo zapisany język i kliknij Uruchom.\n"
             "3. Sterowanie menu:\n"
@@ -506,8 +514,8 @@ class LabApp:
             "4. W sekcji Sondy wybierz napięcie lub prąd, wpisz wartość i kliknij "
             "Podaj wartość na sondy.\n"
             "5. Surowe ramki ASIC można wysyłać w sekcji UART.\n"
-            "6. Szybki test sprawdza start i pomiar; regresja angielska porównuje ekran "
-            "i UART z oryginalnym V2.4.\n"
+            "6. Szybki test sprawdza start i pomiar; test blokady uruchamia firmware "
+            "z ustawieniami angielski + Motyw 2 i sprawdza powrót do polskiego + Motyw 1.\n"
             "7. Zapisz zrzut PNG, gdy chcesz udokumentować konkretny ekran.\n\n"
             "Emulator nie sprawdza fizycznej dokładności ani zabezpieczeń wejścia."
         )

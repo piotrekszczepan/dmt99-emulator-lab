@@ -5,7 +5,7 @@ Interfejs przypomina prawdziwy miernik: ma ekran, przyciski funkcyjne i gniazda 
 
 ## Instalacja
 
-Wymagane są Windows, Python 3.11-3.13 i Git for Windows.
+Wymagane są Windows, Python 3.11-3.14 i Git for Windows.
 
 1. Uruchom `setup.bat` i poczekaj na instalację zależności.
 2. Uruchom `Uruchom_DMT99_Emulator_Lab.bat`.
@@ -13,12 +13,16 @@ Wymagane są Windows, Python 3.11-3.13 i Git for Windows.
 
 Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 
+## Stan wersji polskiej
+
+Poprzedni wariant polskiego firmware został przyjęty przez bootloader fizycznego DMT-99 V2.4 użytkownika i uruchomił polskie menu. Końcowy wariant z wymuszonym polskim, Motywem 1 i pełnymi nazwami 11 pomiarów przeszedł test procesora RV32 oraz obrazu ekranu w emulatorze. Nadal wymaga oddzielnego testu na fizycznym mierniku; emulator nie potwierdza toru analogowego ani bezpieczeństwa wejść.
+
 ## Krótka instrukcja
 
 1. Wybierz firmware i W25Q64, a następnie kliknij **Uruchom (4 s)**.
 2. Sterowanie menu: **HOLD/REL** — poprzednia pozycja, **mA/A** — następna, **VΩHz** — wejdź, **NCV/LIVE** — wstecz, **AUTO/MENU krótko** — zatwierdź, **AUTO/MENU długo** — otwórz lub wyjdź. Na narysowanym AUTO/MENU prawy przycisk myszy oznacza długie naciśnięcie.
 3. W sekcji **Sondy pomiarowe** wybierz napięcie/prąd AC lub DC, wpisz wartość i kliknij **Podaj wartość na sondy**.
-4. **Szybki test** sprawdza start i reakcję na pomiar. **Regresja angielska** porównuje ekran i UART z oryginalnym V2.4.
+4. **Szybki test** sprawdza start i reakcję na pomiar. **Test blokady** uruchamia ustawienia angielski + Motyw 2 i sprawdza powrót do polskiego + Motyw 1.
 5. **Zapisz zrzut PNG** zapisuje aktualny ekran.
 
 ## Co jest emulowane
@@ -27,7 +31,7 @@ Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 - SRAM, przerwania, UART, SPI, W25Q64 i wyświetlacz ST7789;
 - pięć klawiszy funkcyjnych (w tym krótki i długi AUTO/MENU), osobny przycisk zasilania PC2 oraz układ obudowy zgodny ze zdjęciem DMT-99;
 - cyfrowe ramki ASIC→MCU dla napięcia i prądu DC/AC;
-- start ze skasowanymi ustawieniami albo z wybranym indeksem języka;
+- start ze skasowanymi ustawieniami albo z wybranym indeksem języka i motywu;
 - zapis obrazu ekranu oraz raportów JSON.
 
 ## Ograniczenia i bezpieczeństwo
@@ -38,8 +42,9 @@ Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 - Bootloader USB nie jest emulowany.
 - Zależność reverse-engineeringowa jest pobierana z osobnego repozytorium; patrz `THIRD_PARTY_NOTICES.md`.
 
-Szczegółowa tabela przycisków znajduje się w `docs/INSTRUKCJA_STEROWANIA_MENU.md`.
-Skrypt `tools/patch_dmt99_embedded_polish.py` dodaje polskie napisy ASCII wyłącznie dla indeksu języka 2; nie zawiera firmware.
+Szczegółowa tabela przycisków znajduje się w `docs/INSTRUKCJA_STEROWANIA_MENU.md`, a opis wszystkich funkcji, ograniczeń polskich znaków i oscyloskopu w `docs/INSTRUKCJA_UZYTKOWANIA_I_FUNKCJE.md`.
+
+Narzędzia w `tools/` budują polską gałąź tekstową, blokadę języka/Motywu 1 oraz pełne nazwy pomiarów. Nie zawierają firmware. Zweryfikowany lokalnie wariant używa między innymi napisów `Napiecie DC`, `Napiecie AC`, `Prad DC A`, `Prad AC mA` i `Temperatura`. Kolejność uruchamiania i oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
 
 ## Test bez GUI
 
