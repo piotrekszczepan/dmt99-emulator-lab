@@ -17,7 +17,7 @@ python .\tools\patch_dmt99_chinese_to_polish.py `
 
 python .\tools\patch_dmt99_theme1_locked.py `
   .\images\DMT-99_V2.4_PL_STAGE1.BIN `
-  .\images\DMT-99_V2.4_PL_EN_SYMBOLS_THEME1.BIN
+  .\release\DO_WGRANIA\DMT-99_V2.4_20240306.BIN
 ```
 
 Oczekiwane sumy:
@@ -25,6 +25,8 @@ Oczekiwane sumy:
 - `STAGE0`: `6887401AA6BCDBDE08F8BCD43C6306BB2A2EEAAD0BEE13BD266C5FF7DE222CD2`;
 - `STAGE1`: `CC03870190E64618630795E58B8FBB0AEA1259F101D584E5B408043333409622`;
 - wynik: `12D6DE4DD46319EEE43C18A78D8EF84870366594ED18FC987B19B0B05F24628F`.
+
+Nie zmieniaj końcowej nazwy. Test sprzętowy wykazał, że bootloader przyjął oryginał `DMT-99_V2.4_20240306.BIN`, ale odrzucił zmodyfikowany plik nazwany `DMT-99_V2.4.BIN`.
 
 Skrypt `patch_dmt99_polish_measurement_labels.py` pozostaje wyłącznie materiałem badawczym. Wersja utworzona tym skryptem została wycofana po wykryciu zakłóceń renderowania na fizycznym mierniku. Nie należy jej wgrywać.
 
