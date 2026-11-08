@@ -36,9 +36,9 @@ except ImportError as exc:
 STOCK_FW = RESEARCH / "DMT-99_V2.4_20240306.bin"
 STOCK_FLASH = RESEARCH / "flashdump" / "dmt99_flash_1.bin"
 
-DEFAULT_FW = PACKAGE / "DMT-99_V2.4_PL_ONLY_LABELS.BIN"
+DEFAULT_FW = PACKAGE / "DMT-99_V2.4_PL_EN_SYMBOLS_THEME1.BIN"
 if not DEFAULT_FW.is_file():
-    DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL_ONLY_LOCKED.BIN"
+    DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL_CODE_CHINESE_OPTION.BIN"
 if not DEFAULT_FW.is_file():
     DEFAULT_FW = PACKAGE / "DMT-99_V2.4_20240306_PL_CODE.BIN"
 DEFAULT_FLASH = STOCK_FLASH
@@ -50,7 +50,8 @@ if not DEFAULT_FLASH.is_file():
     DEFAULT_FLASH = APP_DIR / "images" / "DMT99_W25Q64.bin"
 
 LANGUAGES = [
-    ("2 — polski (miejsce niemieckiego)", 2),
+    ("Polski — domyślny", 2),
+    ("English — drugi język", 1),
 ]
 
 PROBE_MODES = [
@@ -302,7 +303,7 @@ class LabApp:
         tests = ttk.LabelFrame(parent, text="Testy", padding=10)
         tests.pack(fill="x", pady=(10, 0))
         ttk.Button(tests, text="Szybki test bieżącego firmware", command=self.quick_test).pack(fill="x")
-        ttk.Button(tests, text="Test blokady: tylko polski + Motyw 1", command=self.polish_lock_test).pack(fill="x", pady=(5, 0))
+        ttk.Button(tests, text="Test Polski/English + Motyw 1", command=self.polish_lock_test).pack(fill="x", pady=(5, 0))
         ttk.Button(tests, text="Zapisz zrzut PNG…", command=self.save_png).pack(fill="x", pady=(5, 0))
         ttk.Button(tests, text="Krótka instrukcja", command=self.show_help).pack(fill="x", pady=(5, 0))
 
@@ -470,22 +471,26 @@ class LabApp:
     def polish_lock_test(self):
         def action():
             fw, flash = self._paths()
-            fixture = settings_image(view=1, layout=1, english=1)
-            candidate = Ch32Emulator(original=True, bin_path=fw, flash_dump=flash,
-                                     settings=fixture, battery_raw=battery_raw(87))
-            candidate.run(seconds=4)
-            state = emulator_state(candidate)
-            passed = state["fault"] is None and not state["halted"] and \
-                     state["main_loop_entered"] and state["language_index"] == 2 and \
-                     state["layout_index"] == 0 and state["resource_prefix"] == "menu/german/"
-            report = {"test": "polish_lock", "pass": passed, "candidate": state,
-                      "initial_fixture": {"language": 1, "layout": 1}}
+            polish = Ch32Emulator(original=True, bin_path=fw, flash_dump=flash,
+                                  settings=settings_image(view=1, layout=1, english=2),
+                                  battery_raw=battery_raw(87))
+            english = Ch32Emulator(original=True, bin_path=fw, flash_dump=flash,
+                                   settings=settings_image(view=1, layout=0, english=1),
+                                   battery_raw=battery_raw(87))
+            polish.run(seconds=4); english.run(seconds=4)
+            state, english_state = emulator_state(polish), emulator_state(english)
+            passed = state["fault"] is None and english_state["fault"] is None and \
+                     state["main_loop_entered"] and english_state["main_loop_entered"] and \
+                     state["language_index"] == 2 and english_state["language_index"] == 1 and \
+                     state["layout_index"] == 0 and english_state["layout_index"] == 0
+            report = {"test": "polish_english_theme1", "pass": passed,
+                      "polish": state, "english": english_state}
             self._save_report(report)
-            self.emu = candidate
-            result = self._snapshot(f"Blokada polskiego i Motywu 1: {'PASS' if passed else 'FAIL'}; raport zapisany.")
+            self.emu = polish
+            result = self._snapshot(f"Polski/English i Motyw 1: {'PASS' if passed else 'FAIL'}; raport zapisany.")
             result["test"] = report
             return result
-        self._task("Test blokady polskiego", action)
+        self._task("Test Polski/English i Motywu 1", action)
 
     def _save_report(self, report):
         folder = APP_DIR / "raporty"; folder.mkdir(exist_ok=True)
@@ -514,8 +519,8 @@ class LabApp:
             "4. W sekcji Sondy wybierz napięcie lub prąd, wpisz wartość i kliknij "
             "Podaj wartość na sondy.\n"
             "5. Surowe ramki ASIC można wysyłać w sekcji UART.\n"
-            "6. Szybki test sprawdza start i pomiar; test blokady uruchamia firmware "
-            "z ustawieniami angielski + Motyw 2 i sprawdza powrót do polskiego + Motyw 1.\n"
+            "6. Szybki test sprawdza start i pomiar; test języków sprawdza osobno "
+            "Polski, English oraz wymuszenie Motywu 1.\n"
             "7. Zapisz zrzut PNG, gdy chcesz udokumentować konkretny ekran.\n\n"
             "Emulator nie sprawdza fizycznej dokładności ani zabezpieczeń wejścia."
         )

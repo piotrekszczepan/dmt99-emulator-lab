@@ -15,14 +15,14 @@ Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 
 ## Stan wersji polskiej
 
-Poprzedni wariant polskiego firmware został przyjęty przez bootloader fizycznego DMT-99 V2.4 użytkownika i uruchomił polskie menu. Końcowy wariant z wymuszonym polskim, Motywem 1 i pełnymi nazwami 11 pomiarów przeszedł test procesora RV32 oraz obrazu ekranu w emulatorze. Nadal wymaga oddzielnego testu na fizycznym mierniku; emulator nie potwierdza toru analogowego ani bezpieczeństwa wejść.
+Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Zalecany wariant zachowuje fabryczne symbole, ustawia Polski jako język domyślny, pozostawia English jako drugi język i wymusza Motyw 1. Nadal wymaga potwierdzenia na fizycznym wyświetlaczu.
 
 ## Krótka instrukcja
 
 1. Wybierz firmware i W25Q64, a następnie kliknij **Uruchom (4 s)**.
 2. Sterowanie menu: **HOLD/REL** — poprzednia pozycja, **mA/A** — następna, **VΩHz** — wejdź, **NCV/LIVE** — wstecz, **AUTO/MENU krótko** — zatwierdź, **AUTO/MENU długo** — otwórz lub wyjdź. Na narysowanym AUTO/MENU prawy przycisk myszy oznacza długie naciśnięcie.
 3. W sekcji **Sondy pomiarowe** wybierz napięcie/prąd AC lub DC, wpisz wartość i kliknij **Podaj wartość na sondy**.
-4. **Szybki test** sprawdza start i reakcję na pomiar. **Test blokady** uruchamia ustawienia angielski + Motyw 2 i sprawdza powrót do polskiego + Motyw 1.
+4. **Szybki test** sprawdza start i reakcję na pomiar. **Test Polski/English** sprawdza oba języki i Motyw 1.
 5. **Zapisz zrzut PNG** zapisuje aktualny ekran.
 
 ## Co jest emulowane
@@ -44,7 +44,7 @@ Poprzedni wariant polskiego firmware został przyjęty przez bootloader fizyczne
 
 Szczegółowa tabela przycisków znajduje się w `docs/INSTRUKCJA_STEROWANIA_MENU.md`, a opis wszystkich funkcji, ograniczeń polskich znaków i oscyloskopu w `docs/INSTRUKCJA_UZYTKOWANIA_I_FUNKCJE.md`.
 
-Narzędzia w `tools/` budują polską gałąź tekstową, blokadę języka/Motywu 1 oraz pełne nazwy pomiarów. Nie zawierają firmware. Zweryfikowany lokalnie wariant używa między innymi napisów `Napiecie DC`, `Napiecie AC`, `Prad DC A`, `Prad AC mA` i `Temperatura`. Kolejność uruchamiania i oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
+Narzędzia w `tools/` budują wariant Polski/English z fabrycznymi symbolami i Motywem 1. Nie zawierają firmware. Kolejność uruchamiania, ostrzeżenie o wycofanym eksperymencie oraz oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
 
 ## Test bez GUI
 

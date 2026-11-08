@@ -1,27 +1,22 @@
-# FNIRSI DMT-99 V2.4 — instrukcja użytkowania i funkcje
-
-Pełna instrukcja wersji eksperymentalnej PL znajduje się w pakiecie użytkownika. Poniżej opis funkcji miernika i ograniczeń projektu źródłowego.
+# DMT-99 V2.4 — funkcje i ograniczenia wersji PL/English
 
 ## Bezpieczeństwo
 
-- Czarny przewód: `COM`. Czerwony: `VΩ` dla napięcia, rezystancji, ciągłości, diody, pojemności, częstotliwości i temperatury.
-- Gniazd `mA` i `10A` używaj wyłącznie do prądu mierzonego szeregowo.
-- Nigdy nie mierz napięcia z czerwonym przewodem w gnieździe prądowym.
-- Rezystancję, ciągłość, diodę i pojemność mierz w obwodzie odłączonym od zasilania; kondensator rozładuj.
+- Czarny przewód podłącz do `COM`.
+- Czerwony przewód podłącz do `VΩ` dla napięcia, rezystancji, ciągłości, diody, pojemności, częstotliwości i temperatury.
+- Gniazd `mA` i `10A` używaj wyłącznie do pomiaru prądu szeregowo.
+- Nigdy nie przykładaj napięcia, gdy przewód pozostaje w gnieździe prądowym.
+- Rezystancję, diodę, ciągłość i pojemność mierz w obwodzie odłączonym od zasilania.
 - NCV i LIVE są pomocnicze i nie potwierdzają braku napięcia.
 
 ## Funkcje
 
-Automatyczne rozpoznawanie, napięcie DC/AC, rezystancja, ciągłość, test diody, pojemność, częstotliwość, prąd DC/AC w A i mA/µA, temperatura °C/°F, NCV, LIVE, HOLD, REL, rejestracja trendu, monitorowanie progów i historia do 30 rekordów.
+Automatyczne rozpoznawanie, napięcie DC/AC, prąd DC/AC w A i mA/µA, rezystancja, ciągłość, dioda, pojemność, częstotliwość, temperatura °C/°F, NCV, LIVE, HOLD, REL, rejestracja trendu, progi i historia do 30 rekordów.
 
-W przygotowanym patchu ekran regularny używa nazw ASCII: `Pojemnosc`, `Rezystancja`, `Napiecie DC`, `Napiecie AC`, `Ciaglosc`, `Czestotliwosc`, `Prad DC A`, `Prad DC mA`, `Temperatura`, `Prad AC A`, `Prad AC mA`.
+Wersja naprawcza zachowuje fabryczne symbole, Polski jako język domyślny oraz English jako drugi język. Motyw 1 jest wymuszony. Motywu 2 nie da się bezpiecznie spolszczyć samym plikiem aplikacji, ponieważ jego JPEG-y znajdują się w W25Q64.
 
-## Polskie znaki i oscyloskop
+## Wycofana wersja
 
-Fabryczny renderer obsługuje drukowalne ASCII 32–126. UTF-8 lub „rozszerzone ASCII” nie doda bezpiecznie polskich liter. Pełne glify wymagają własnego renderera lub zmian grafik W25Q64, których zwykły updater USB nie zapisuje.
+Firmware z pełnymi nazwami pomiarów i SHA-256 `38F5160F60F718B9F2120FCF03655BB07F590D01526A5B2720E146A8527C44F1` powodował zakłócenia rysowania na fizycznym ekranie. Nie należy go używać. Emulator nie wykrył tej usterki, co potwierdza, że test cyfrowy nie zastępuje próby sprzętowej.
 
-Prawdziwy oscyloskop nie jest obecnie wiarygodnym rozszerzeniem: rozpoznany protokół dostarcza ramki wyniku podobne do segmentów LCD, nie potwierdzony szybki strumień ADC. Realne rozszerzenia to wolny trend, MIN/MAX/AVG i eksport CSV w emulatorze. Pomiar mocy wymagałby jednoczesnego napięcia i prądu, czego nie potwierdzono.
-
-## Granice
-
-Emulator wykonuje kod RV32 i modele urządzeń cyfrowych. Nie sprawdza fizycznej dokładności, kalibracji, izolacji ani zabezpieczeń wejść. Repozytorium nie zawiera firmowego BIN ani zrzutu W25Q64.
+Prawdziwy oscyloskop nadal nie jest wiarygodnym rozszerzeniem: rozpoznany protokół dostarcza wynik pomiaru, nie potwierdzony szybki strumień surowych próbek ADC. Realne dodatki programowe to wolny trend, MIN/MAX/AVG oraz eksport CSV w emulatorze.
