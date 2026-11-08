@@ -25,22 +25,25 @@ CHINESE_RENDER = 0x8E46
 CHINESE_RENDER_CONTINUE = 0x8E4A
 HOOK = 0x1EAB0
 HOOK_SIZE = 513
-STRING_CAVE = 0x27210
-STRING_CAVE_SIZE = 224
+STRING_CAVES = (
+    (0x27210, 224),
+    (0x2731C, 101),
+)
 
 # ASCII strings used by the compact menu and settings pages.  The hook is
 # active only for stored language index 2, so English at index 1 is untouched.
 ASCII_TRANSLATIONS = [
     (0x2541C, "Wybor trybu"),
-    (0x25210, "Progi"),
-    (0x2542C, "ustawienia"),
+    (0x25210, "Ustawienia"),
+    (0x2542C, "progow"),
     (0x25438, "Historia"),
     (0x25448, "Ustawienia"),
     (0x249F4, "Resetuj"),
-    (0x25458, "Informacje"),
+    (0x25458, "O mierniku"),
     (0x253A4, "Normalny"),
     (0x253AC, "Rejestr"),
-    (0x25160, "Pomiary"),
+    (0x25158, "Tryb"),
+    (0x25160, "Pomiar"),
     (0x247D4, "Jasnosc"),
     (0x247E0, "Jedn. temp."),
     (0x247F4, "Jasnosc:"),
@@ -55,6 +58,9 @@ ASCII_TRANSLATIONS = [
     (0x250DC, "Jezyk"),
     (0x250E8, "Motyw:"),
     (0x250F0, "Jezyk:"),
+    (0x2494C, "Napiecie:"),
+    (0x24958, "Prad:"),
+    (0x24964, "Temperatura:"),
 ]
 
 # The theme/language screen uses three Chinese glyph strings.  Its language
@@ -75,17 +81,22 @@ def encode_jal(pc: int, target: int, rd: int = 0) -> bytes:
     return struct.pack("<I", jal(rd, target - pc))
 
 
-def build_string_pool() -> tuple[bytes, dict[str, int]]:
-    pool = bytearray()
+def build_string_pools() -> tuple[list[tuple[int, bytes]], dict[str, int]]:
+    pools = [(address, bytearray()) for address, _ in STRING_CAVES]
     addresses: dict[str, int] = {}
     for _, text in ASCII_TRANSLATIONS + CHINESE_TRANSLATIONS:
         if text in addresses:
             continue
-        addresses[text] = STRING_CAVE + len(pool)
-        pool += text.encode("ascii") + b"\0"
-    if len(pool) > STRING_CAVE_SIZE:
-        raise ValueError(f"string pool needs {len(pool)} bytes, cave has {STRING_CAVE_SIZE}")
-    return bytes(pool), addresses
+        encoded = text.encode("ascii") + b"\0"
+        for (base, size), (_, pool) in zip(STRING_CAVES, pools):
+            if len(pool) + len(encoded) <= size:
+                addresses[text] = base + len(pool)
+                pool += encoded
+                break
+        else:
+            capacity = sum(size for _, size in STRING_CAVES)
+            raise ValueError(f"string pools cannot fit {text!r}; total capacity {capacity} bytes")
+    return [(base, bytes(pool)) for base, pool in pools], addresses
 
 
 def make_table(items, addresses) -> bytes:
@@ -169,8 +180,8 @@ def build_theme_language_reader(address: int) -> bytes:
     return pack(words)
 
 
-def build_payload() -> tuple[bytes, bytes, dict]:
-    pool, addresses = build_string_pool()
+def build_payload() -> tuple[bytes, list[tuple[int, bytes]], dict]:
+    pools, addresses = build_string_pools()
     ascii_code_size = 15 * 4
     ascii_table_address = HOOK + ascii_code_size
     ascii_table = make_table(ASCII_TRANSLATIONS, addresses)
@@ -196,12 +207,15 @@ def build_payload() -> tuple[bytes, bytes, dict]:
     meta = {
         "hook_address": hex(HOOK),
         "hook_bytes": len(payload),
-        "string_cave": hex(STRING_CAVE),
-        "string_bytes": len(pool),
+        "string_caves": [
+            {"address": hex(address), "bytes": len(pool)}
+            for address, pool in pools
+        ],
+        "string_bytes": sum(len(pool) for _, pool in pools),
         "chinese_hook_address": hex(chinese_hook_address),
         "theme_reader_address": hex(theme_reader_address),
     }
-    return bytes(payload), pool, meta
+    return bytes(payload), pools, meta
 
 
 def replace_exact(image: bytearray, address: int, old: bytes, new: bytes) -> None:
@@ -222,12 +236,13 @@ def main() -> None:
 
     source = args.source.read_bytes()
     image = bytearray(source)
-    payload, string_pool, meta = build_payload()
+    payload, string_pools, meta = build_payload()
 
     if any(image[HOOK - LOAD:HOOK - LOAD + HOOK_SIZE]):
         raise SystemExit("Primary V2.4 code cave is not empty; refusing to patch")
-    if any(image[STRING_CAVE - LOAD:STRING_CAVE - LOAD + STRING_CAVE_SIZE]):
-        raise SystemExit("V2.4 string cave is not empty; refusing to patch")
+    for address, size in STRING_CAVES:
+        if any(image[address - LOAD:address - LOAD + size]):
+            raise SystemExit(f"V2.4 string cave at 0x{address:X} is not empty; refusing to patch")
     replace_exact(image, ASCII_RENDER, bytes.fromhex("efe20f88"), encode_jal(ASCII_RENDER, HOOK))
 
     # Addresses are known only after the tables have been laid out.
@@ -249,7 +264,8 @@ def main() -> None:
     replace_exact(image, 0x24F8C, b"menu/chinese_.jpg\0", b"menu/german_.jpg\0\0")
 
     image[HOOK - LOAD:HOOK - LOAD + len(payload)] = payload
-    image[STRING_CAVE - LOAD:STRING_CAVE - LOAD + len(string_pool)] = string_pool
+    for address, string_pool in string_pools:
+        image[address - LOAD:address - LOAD + len(string_pool)] = string_pool
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(image)
 

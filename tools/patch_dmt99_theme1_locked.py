@@ -19,7 +19,7 @@ from patch_dmt99_embedded_polish import LOAD, REG, branch, itype, jal, lui, pack
 
 LAYOUT_ACCESS = 0xDA04
 LAYOUT_CONTINUE = 0xDA08
-THEME_GUARD = 0x1EC1C
+THEME_GUARD = 0x1EC4C
 THEME_GUARD_SIZE = 24
 
 

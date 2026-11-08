@@ -15,7 +15,7 @@ Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 
 ## Stan wersji polskiej
 
-Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Zalecany wariant zachowuje fabryczne symbole, ustawia Polski jako język domyślny, pozostawia English jako drugi język i wymusza Motyw 1. Nadal wymaga potwierdzenia na fizycznym wyświetlaczu.
+Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Wariant z fabrycznymi symbolami, Polskim domyślnym, English jako drugim językiem i Motywem 1 został 8 listopada 2026 przyjęty przez fizyczny bootloader i uruchomiony. Późniejsze dopracowanie tłumaczy także progi (`Napiecie`, `Prad`, `Temperatura`) oraz nagłówki historii (`Tryb`, `Pomiar`); ten nowy plik wymaga jeszcze kontroli na fizycznym ekranie.
 
 ## Krótka instrukcja
 
@@ -45,6 +45,8 @@ Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił 
 Szczegółowa tabela przycisków znajduje się w `docs/INSTRUKCJA_STEROWANIA_MENU.md`, a opis wszystkich funkcji, ograniczeń polskich znaków i oscyloskopu w `docs/INSTRUKCJA_UZYTKOWANIA_I_FUNKCJE.md`.
 
 Narzędzia w `tools/` budują wariant Polski/English z fabrycznymi symbolami i Motywem 1. Nie zawierają firmware. Kolejność uruchamiania, ostrzeżenie o wycofanym eksperymencie oraz oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
+
+Ostrzeżenie ładowania jest plikiem JPEG w zewnętrznej W25Q64. Sam patch BIN nie może zmienić niemieckiego obrazu używanego przez polski slot zasobów; repozytorium nie wykonuje automatycznych, niepotwierdzonych zapisów tej pamięci.
 
 ## Test bez GUI
 

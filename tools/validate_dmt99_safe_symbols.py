@@ -61,6 +61,16 @@ def open_system(emu: Ch32Emulator) -> None:
         press(emu, key)
 
 
+def open_thresholds(emu: Ch32Emulator) -> None:
+    for key in (6, 1, 3):
+        press(emu, key)
+
+
+def open_history(emu: Ch32Emulator) -> None:
+    for key in (6, 1, 1, 3):
+        press(emu, key)
+
+
 def binary_diff_ranges() -> list[dict]:
     base, candidate = BASELINE.read_bytes(), FIRMWARE.read_bytes()
     changed = [index for index, pair in enumerate(zip(base, candidate)) if pair[0] != pair[1]]
@@ -81,7 +91,7 @@ def binary_changes_confined() -> bool:
     base, candidate = BASELINE.read_bytes(), FIRMWARE.read_bytes()
     allowed = (
         range(0xDA04 - LOAD, 0xDA08 - LOAD),
-        range(0x1EC1C - LOAD, 0x1EC34 - LOAD),
+        range(0x1EC4C - LOAD, 0x1EC64 - LOAD),
     )
     return all(any(index in region for region in allowed)
                for index, pair in enumerate(zip(base, candidate)) if pair[0] != pair[1])
@@ -105,6 +115,16 @@ def main() -> None:
         press(theme, key)
     theme_state = state(theme)
 
+    thresholds = make(language=2)
+    open_thresholds(thresholds)
+    thresholds_state = state(thresholds)
+    thresholds.panel.save(PACKAGE / "emulacja-v2-progi.png")
+
+    history = make(language=2)
+    open_history(history)
+    history_state = state(history)
+    history.panel.save(PACKAGE / "emulacja-v2-historia.png")
+
     baseline = make(BASELINE, language=2)
     candidate = make(language=2)
     symbol_checks = []
@@ -125,7 +145,8 @@ def main() -> None:
     ranges = binary_diff_ranges()
     healthy = all(item["fault"] is None and not item["halted"]
                   and item["main_loop_entered"]
-                  for item in (default_state, english_state, theme_state))
+                  for item in (default_state, english_state, theme_state,
+                               thresholds_state, history_state))
     default_polish = default_state["stored_language"] == 2 \
         and default_state["resource_prefix"] == "menu/german/"
     english_available = english_state["stored_language"] == 1 \
@@ -155,6 +176,8 @@ def main() -> None:
         "default_boot": default_state,
         "after_english_selection": english_state,
         "after_theme2_attempt": theme_state,
+        "polish_thresholds_screen": thresholds_state,
+        "polish_history_screen": history_state,
         "symbol_checks": symbol_checks,
         "withdrawn_firmware_sha256":
             "38F5160F60F718B9F2120FCF03655BB07F590D01526A5B2720E146A8527C44F1",
