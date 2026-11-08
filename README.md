@@ -15,7 +15,7 @@ Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 
 ## Stan wersji polskiej
 
-Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Wariant z fabrycznymi symbolami, Polskim domyślnym, English jako drugim językiem i Motywem 1 został 8 listopada 2026 przyjęty przez fizyczny bootloader i uruchomiony. Późniejsze dopracowanie tłumaczy także progi (`Napiecie`, `Prad`, `Temperatura`) oraz nagłówki historii (`Tryb`, `Pomiar`); ten nowy plik wymaga jeszcze kontroli na fizycznym ekranie.
+Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Wariant V2 z fabrycznymi symbolami, Polskim domyślnym, English jako drugim językiem, Motywem 1 oraz dopracowanymi progami i historią został 8 listopada 2026 przyjęty przez fizyczny bootloader i sprawdzony na mierniku. Jedynym pozostałym niemieckim elementem był komunikat ładowania. V3 zastępuje go polskim tekstem rysowanym przez fabryczny renderer, bez zapisu W25Q64; V3 przeszła emulator, ale wymaga jeszcze sprawdzenia tego ekranu na sprzęcie.
 
 ## Krótka instrukcja
 
@@ -46,7 +46,7 @@ Szczegółowa tabela przycisków znajduje się w `docs/INSTRUKCJA_STEROWANIA_MEN
 
 Narzędzia w `tools/` budują wariant Polski/English z fabrycznymi symbolami i Motywem 1. Nie zawierają firmware. Kolejność uruchamiania, ostrzeżenie o wycofanym eksperymencie oraz oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
 
-Ostrzeżenie ładowania jest plikiem JPEG w zewnętrznej W25Q64. Sam patch BIN nie może zmienić niemieckiego obrazu używanego przez polski slot zasobów; repozytorium nie wykonuje automatycznych, niepotwierdzonych zapisów tej pamięci.
+Ostrzeżenie ładowania jest plikiem JPEG w zewnętrznej W25Q64. Patch V3 nie zmienia tej pamięci: dla polskiego slotu omija niemiecki JPEG i rysuje cztery krótkie linie ASCII, zachowując fabryczną ikonę ostrzeżenia i wtyczki. English nadal wyświetla oryginalny angielski JPEG.
 
 ## Test bez GUI
 
