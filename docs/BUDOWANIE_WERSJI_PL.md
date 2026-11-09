@@ -29,21 +29,23 @@ Oczekiwane sumy:
 - `STAGE0`: `6887401AA6BCDBDE08F8BCD43C6306BB2A2EEAAD0BEE13BD266C5FF7DE222CD2`;
 - `STAGE1`: `F38B3EC5EAAD6FFDE80E84216360B3C5694393492385E7AE5A85C27D506C2FAE`;
 - etap V4 z polskim komunikatem ładowania i odblokowanymi motywami: `1729B0393A444E0813F523482D95572C72A382C0711D671E2AA6AB68B4C1191C`;
-- wynik V6 z polskim Motywem 2 i poprawionymi przejściami: `122313C34C75DF88C4C008B8F989C9016B403DB9D3E69D7C3FC7C117F9A91C81`.
+- wynik V8 z polskim Motywem 2, wszystkimi ścieżkami odświeżania trybu i poprawnym zaznaczeniem: `F312161A6DE079A41ED18981EB8EFDDCEA6FEE410DD9F1F34350B0E688F522DA`.
 
 Nie zmieniaj końcowej nazwy. Test sprzętowy z 8 listopada 2026 wykazał, że bootloader odrzucił zmodyfikowany plik nazwany `DMT-99_V2.4.BIN`, a następnie przyjął tę samą zawartość i uruchomił ją pod nazwą `DMT-99_V2.4_20240306.BIN`.
 
 Skrypt `patch_dmt99_polish_measurement_labels.py` pozostaje wyłącznie materiałem badawczym. Wersja utworzona tym skryptem została wycofana po wykryciu zakłóceń renderowania na fizycznym mierniku. Nie należy jej wgrywać.
 
-Motyw 2 korzysta z JPEG-ów w zewnętrznej W25Q64. Zwykły updater `BOOT` ich nie aktualizuje. V6 nie próbuje zapisywać tej pamięci: dla języka polskiego i Motywu 2 przechwytuje wyłącznie ustalone wywołania grafik menu i rysuje polskie napisy fabrycznymi funkcjami prostokąta i ASCII. Dodatkowe odmalowanie usuwa niemiecki panel przy zatwierdzaniu Motywu 2 oraz chińską kolumnę po przejściu English → Polski. Motyw 1, English, ekrany pomiarowe i kalibracja nie są zmieniane przez ten patch.
+Motyw 2 korzysta z JPEG-ów w zewnętrznej W25Q64. Zwykły updater `BOOT` ich nie aktualizuje. V8 nie próbuje zapisywać tej pamięci: dla języka polskiego i Motywu 2 przechwytuje wyłącznie ustalone wywołania grafik menu i rysuje polskie napisy fabrycznymi funkcjami prostokąta i ASCII. Obejmuje początkowe rysowanie oraz dodatkowe odświeżenia używane dla zapisanych widoków Pomiar, Rejestracja i Monitor. Dodatkowe odmalowanie usuwa też niemiecki panel przy zatwierdzaniu Motywu 2 oraz chińską kolumnę po przejściu English → Polski. Motyw 1, English, ekrany pomiarowe i kalibracja nie są zmieniane przez ten patch.
+
+Ekran trybu `BOOT` nie należy do tej aplikacji. Obraz aktualizacji zaczyna się od adresu MCU `0x6400` i nie zawiera obszaru rezydentnego bootloadera `0x0000–0x63FF`. Bez zweryfikowanego zrzutu bootloadera i drogi odzyskania jego modyfikacja nie jest bezpieczna.
 
 `recharge1.jpg` jest zasobem W25Q64, ale V3 nie musi go podmieniać. Dla języka polskiego omija niemiecki JPEG i wyświetla komunikat fabrycznym rendererem ASCII. Angielski JPEG, ikona ostrzeżenia i wtyczki pozostają niezmienione; skrypt nie wykonuje zapisów W25Q64.
 
-Walidacja V6:
+Walidacja V8:
 
 ```powershell
 $env:DMT99_IMAGES_DIR = (Resolve-Path .\images)
 python .\tools\validate_dmt99_theme2.py
 ```
 
-Walidator wymaga repozytorium badawczego zainstalowanego przez `setup.ps1` oraz własnego zrzutu W25Q64 w oczekiwanej lokalizacji tego repozytorium. Sprawdza sześć stron polskiego Motywu 2, niezmieniony Motyw 1 i English, przejście English → Polski w obu motywach, odmalowanie po wyborze Motywu 2, ekrany ładowania, sześć przypadków pomiarowych, brak dodatkowych zapisów W25Q64 i ograniczenie zmian binarnych.
+Walidator wymaga repozytorium badawczego zainstalowanego przez `setup.ps1` oraz własnego zrzutu W25Q64 w oczekiwanej lokalizacji tego repozytorium. Sprawdza sześć stron polskiego Motywu 2, trzy różne zapisane widoki z właściwym zaznaczeniem, niezmieniony Motyw 1 i English, przejście English → Polski w obu motywach, odmalowanie po wyborze Motywu 2, ekrany ładowania, sześć przypadków pomiarowych, brak dodatkowych zapisów W25Q64 i ograniczenie zmian binarnych.

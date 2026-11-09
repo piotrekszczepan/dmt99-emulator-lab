@@ -52,6 +52,15 @@ V2.4 uruchomiono jako oryginalny kod maszynowy w modelu CH32V303 z emulacją SRA
 
 To potwierdza, że V2.4 można emulować funkcjonalnie po stronie cyfrowej. Nie jest to test fizycznego miernika.
 
+## Polska modyfikacja V8 (2026-11-09)
+
+- Polski jest językiem domyślnym, English pozostaje drugim językiem.
+- Motyw 2 omija niemieckie grafiki tekstowe bez modyfikowania W25Q64.
+- Dodano polskie etykiety wszystkich trzech trybów i wszystkie ścieżki ich odświeżania: Pomiar, Rejestracja, Monitor.
+- Naprawiono rozpoznawanie aktywnej grafiki `mode1_.jpg`, `mode2_.jpg`, `mode3_.jpg`, dzięki czemu żółte zaznaczenie odpowiada zapisanemu trybowi.
+- Pełna walidacja RV32 zakończyła się `pass: true`; trzy zapisane tryby dają trzy różne bufory ekranu.
+- Ekran aktualizacji USB pozostaje chińsko-angielski, ponieważ znajduje się w rezydentnym bootloaderze poza zakresem pliku aplikacji zaczynającym się od `0x6400`.
+
 ## Podstawa analizy
 
 - dostarczone obrazy V2.2 i V2.4;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate DMT-99 V6 with preview-safe Polish language and Theme 2."""
+"""Validate DMT-99 V8 with complete Polish Theme-2 repaint paths."""
 
 from __future__ import annotations
 
@@ -28,15 +28,18 @@ from fw_emulator import Ch32Emulator
 from test_firmware_emulation import ack_packet, battery_raw, reading_packet, settings_image
 
 
-FIRMWARE = PACKAGE / "DMT-99_V2.4_PL_EN_THEME2_PL_V6.BIN"
+FIRMWARE = PACKAGE / "DMT-99_V2.4_PL_EN_THEME2_PL_V8.BIN"
+V6_FIRMWARE = PACKAGE / "DMT-99_V2.4_PL_EN_THEME2_PL_V6.BIN"
 BASELINE = PACKAGE / "DMT-99_V2.4_PL_EN_SYMBOLS_THEME1_THEME2_V4C.BIN"
 STOCK_FLASH = RESEARCH / "flashdump" / "dmt99_flash_1.bin"
 LOAD = 0x6400
 PINS = {1: "PC10", 2: "PC11", 3: "PC9", 4: "PC12", 5: "PC8", 6: "PC8"}
 HOOK = 0x27400
 CALL_SITES = (
+    0x15E1A, 0x15E40,
     0x15C5C, 0x15C82,
     0x16ACC, 0x16AF0, 0x16B3E, 0x16B66, 0x16B8E,
+    0x16BE8, 0x16C3C, 0x16C64,
     0x16F5E, 0x16F84, 0x16FBC, 0x16FE4, 0x1700C,
     0x172AC, 0x172D2, 0x1730C, 0x1739C,
     0x1794C, 0x17972, 0x17A26, 0x17A86, 0x17AAC,
@@ -54,9 +57,9 @@ PAGE_SEQUENCES = {
 
 
 def make(firmware: Path = FIRMWARE, *, language: int | None = 2,
-         layout: int = 0) -> Ch32Emulator:
+         layout: int = 0, view: int = 1) -> Ch32Emulator:
     fixture = None if language is None else settings_image(
-        view=1, layout=layout, english=language
+        view=view, layout=layout, english=language
     )
     emu = Ch32Emulator(
         original=True,
@@ -140,11 +143,23 @@ def binary_changes_confined() -> bool:
 
 
 def capture_page(firmware: Path, sequence: tuple[int, ...], *, language: int,
-                 layout: int) -> tuple[Ch32Emulator, str]:
-    emu = make(firmware, language=language, layout=layout)
+                 layout: int, view: int = 1) -> tuple[Ch32Emulator, str]:
+    emu = make(firmware, language=language, layout=layout, view=view)
     for key in sequence:
         press(emu, key)
     return emu, emu.panel.checksum()
+
+
+def capture_mode_page(firmware: Path, view: int) -> tuple[Ch32Emulator, str]:
+    """Open mode selection with each persisted view.
+
+    Views 2 and 3 use peer-repaint call sites that V6 did not intercept on
+    physical hardware.  Exercising every persisted view catches exactly the
+    German Beobachtung/Aufnahme regression reported from the meter.
+    """
+    return capture_page(
+        firmware, PAGE_SEQUENCES["menu"], language=2, layout=1, view=view
+    )
 
 
 def render_reading(emu: Ch32Emulator, mode: int, unit: int) -> None:
@@ -168,7 +183,7 @@ def main() -> None:
         candidate_page, candidate_hash = capture_page(
             FIRMWARE, sequence, language=2, layout=1
         )
-        candidate_page.panel.save(PACKAGE / f"emulacja-v6-motyw2-{name}.png")
+        candidate_page.panel.save(PACKAGE / f"emulacja-v8-motyw2-{name}.png")
         candidate_state = state(candidate_page)
         page_states.append(candidate_state)
         page_checks.append({
@@ -182,6 +197,32 @@ def main() -> None:
         })
         print(f"[2/7] strona PL Motyw 2: {name}", flush=True)
 
+    mode_view_checks = []
+    mode_view_states = []
+    for view in (1, 2, 3):
+        german, german_hash = capture_mode_page(BASELINE, view)
+        old_v6, old_v6_hash = capture_mode_page(V6_FIRMWARE, view)
+        candidate, candidate_hash = capture_mode_page(FIRMWARE, view)
+        candidate.panel.save(
+            PACKAGE / f"emulacja-v8-motyw2-wybor-trybu{view}.png"
+        )
+        candidate_state = state(candidate)
+        mode_view_states.append(candidate_state)
+        mode_view_checks.append({
+            "persisted_view": view,
+            "different_from_stock_german": candidate_hash != german_hash,
+            "fixed_missing_v6_peer_repaint": (
+                view == 1 or candidate_hash != old_v6_hash
+            ),
+            "candidate_framebuffer_sha256": candidate_hash,
+            "v6_framebuffer_sha256": old_v6_hash,
+            "german_baseline_framebuffer_sha256": german_hash,
+            "healthy": candidate_state["fault"] is None
+            and not candidate_state["halted"]
+            and candidate_state["main_loop_entered"],
+        })
+        print(f"[2/7] wybor trybu PL, zapisany widok {view}", flush=True)
+
     theme1_baseline, theme1_baseline_hash = capture_page(
         BASELINE, PAGE_SEQUENCES["menu"], language=2, layout=0
     )
@@ -189,7 +230,7 @@ def main() -> None:
         FIRMWARE, PAGE_SEQUENCES["menu"], language=2, layout=0
     )
     theme1_state = state(theme1)
-    theme1.panel.save(PACKAGE / "emulacja-v6-motyw1-menu.png")
+    theme1.panel.save(PACKAGE / "emulacja-v8-motyw1-menu.png")
     print("[3/7] Motyw 1", flush=True)
 
     english_checks = []
@@ -215,7 +256,7 @@ def main() -> None:
     for key in (1, 5):
         press(selected_theme2, key)
     selected_theme2_state = state(selected_theme2)
-    selected_theme2.panel.save(PACKAGE / "emulacja-v6-wybrany-motyw2.png")
+    selected_theme2.panel.save(PACKAGE / "emulacja-v8-wybrany-motyw2.png")
     print("[5/7] wybor Motywu 2", flush=True)
 
     transition_checks = []
@@ -234,7 +275,7 @@ def main() -> None:
         press(transition, 5)
         polish_state = state(transition)
         transition.panel.save(
-            PACKAGE / f"emulacja-v6-english-polski-motyw{layout + 1}.png"
+            PACKAGE / f"emulacja-v8-english-polski-motyw{layout + 1}.png"
         )
         transition_states.extend((english_state, polish_state))
         transition_checks.append({
@@ -258,7 +299,7 @@ def main() -> None:
     polish_charging.charging = True
     polish_charging.run(seconds=2.5)
     polish_charging_state = state(polish_charging)
-    polish_charging.panel.save(PACKAGE / "emulacja-v6-ladowanie-pl.png")
+    polish_charging.panel.save(PACKAGE / "emulacja-v8-ladowanie-pl.png")
 
     english_charging_baseline = make(BASELINE, language=1, layout=1)
     english_charging_baseline.charging = True
@@ -293,6 +334,7 @@ def main() -> None:
         default_state, theme1_state, selected_theme2_state,
         polish_charging_state, english_charging_state,
         *page_states, *english_states, *transition_states,
+        *mode_view_states,
     ]
     healthy = all(
         item["fault"] is None and not item["halted"] and item["main_loop_entered"]
@@ -313,6 +355,15 @@ def main() -> None:
     polish_pages = all(
         item["different_from_german_v4"] and item["healthy"]
         for item in page_checks
+    )
+    distinct_mode_selection_frames = len({
+        item["candidate_framebuffer_sha256"] for item in mode_view_checks
+    }) == 3
+    all_mode_view_repaints_polish = distinct_mode_selection_frames and all(
+        item["different_from_stock_german"]
+        and item["fixed_missing_v6_peer_repaint"]
+        and item["healthy"]
+        for item in mode_view_checks
     )
     theme1_unchanged = theme1_hash == theme1_baseline_hash
     english_unchanged = all(item["unchanged"] for item in english_checks)
@@ -341,21 +392,24 @@ def main() -> None:
     )
     passed = (
         healthy and default_polish and both_themes and polish_pages
+        and all_mode_view_repaints_polish
         and theme1_unchanged and english_unchanged and symbols_unchanged
         and language_transitions and theme2_selection_polish
         and charging_polish and charging_english and no_extra_writes
         and confined and all_call_sites_changed
     )
     report = {
-        "definition": "Polish default, English second, Polish Theme 1 and firmware-rendered Polish Theme 2",
+        "definition": "Polish default, English second, complete firmware-rendered Polish Theme 2 including all mode-selection repaint paths",
         "pass": passed,
-        "scope": "RV32 emulator and byte confinement; V6 still requires physical-display confirmation",
+        "scope": "RV32 emulator and byte confinement; V8 still requires physical-display confirmation",
         "firmware": str(FIRMWARE),
         "firmware_sha256": hashlib.sha256(FIRMWARE.read_bytes()).hexdigest().upper(),
         "healthy": healthy,
         "default_polish": default_polish,
         "theme1_and_theme2_selectable": both_themes,
         "polish_theme2_pages_replaced": polish_pages,
+        "all_three_persisted_mode_views_repaint_in_polish": all_mode_view_repaints_polish,
+        "all_three_mode_selection_frames_are_distinct": distinct_mode_selection_frames,
         "theme1_unchanged_from_v4": theme1_unchanged,
         "english_theme2_unchanged_from_v4": english_unchanged,
         "english_to_polish_transition_checked_in_both_themes": language_transitions,
@@ -373,6 +427,7 @@ def main() -> None:
         "polish_charging_theme2": polish_charging_state,
         "english_charging_theme2": english_charging_state,
         "polish_theme2_pages": page_checks,
+        "polish_mode_selection_persisted_view_checks": mode_view_checks,
         "english_theme2_pages": english_checks,
         "language_transition_checks": transition_checks,
         "symbol_checks": symbol_checks,

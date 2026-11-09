@@ -39,8 +39,17 @@ STRINGS = 0x28600
 CODE_LIMIT = 0x30000
 
 CALL_SITES = (
+    # System-settings repaint paths.  The first pair is used while the
+    # settings page is rebuilt; the second pair is used while previewing a
+    # language/theme before it is committed to the packed settings word.
+    0x15E1A, 0x15E40,
     0x15C5C, 0x15C82,
+    # Mode-selection initial paint and all three peer-repaint paths.  V6
+    # covered only the common initial calls.  On real hardware the omitted
+    # peer calls made unselected rows fall back to the German JPEGs after the
+    # cursor moved (Beobachtung/Aufnahme/Monitor).
     0x16ACC, 0x16AF0, 0x16B3E, 0x16B66, 0x16B8E,
+    0x16BE8, 0x16C3C, 0x16C64,
     0x16F5E, 0x16F84, 0x16FBC, 0x16FE4, 0x1700C,
     0x172AC, 0x172D2, 0x1730C, 0x1739C,
     0x1794C, 0x17972, 0x17A26, 0x17A86, 0x17AAC,
@@ -323,7 +332,7 @@ def build_assets() -> tuple[Assets, bytes]:
         t(22, 43, WHITE, "Ustawienia"), t(42, 59, WHITE, "progow"),
         t(33, 92, WHITE, "Historia"),
         t(22, 123, WHITE, "Ustawienia"), t(34, 139, WHITE, "systemu"),
-        t(43, 172, WHITE, "Reset"), t(25, 212, WHITE, "O mierniku"),
+        t(31, 172, WHITE, "Resetuj"), t(25, 212, WHITE, "O mierniku"),
     ]
     a.add_ops("base", base)
 
@@ -338,7 +347,7 @@ def build_assets() -> tuple[Assets, bytes]:
         t(22, 43, WHITE, "Ustawienia"), t(42, 59, WHITE, "progow"),
         t(33, 92, WHITE, "Historia"),
         t(22, 123, WHITE, "Ustawienia"), t(34, 139, WHITE, "systemu"),
-        t(43, 172, WHITE, "Reset"), t(25, 212, WHITE, "O mierniku"),
+        t(31, 172, WHITE, "Resetuj"), t(25, 212, WHITE, "O mierniku"),
     ]
     a.add_ops("base_low_top", base_low_top)
 
@@ -347,7 +356,7 @@ def build_assets() -> tuple[Assets, bytes]:
         "row1": (40, 79, [(22, 43, "Ustawienia"), (42, 59, "progow")]),
         "row2": (80, 119, [(33, 92, "Historia")]),
         "row3": (120, 159, [(22, 123, "Ustawienia"), (34, 139, "systemu")]),
-        "row4": (160, 199, [(43, 172, "Reset")]),
+        "row4": (160, 199, [(31, 172, "Resetuj")]),
         "row5": (200, 239, [(25, 212, "O mierniku")]),
     }
     for name, (y1, y2, labels) in rows.items():
@@ -420,6 +429,8 @@ def build_assets() -> tuple[Assets, bytes]:
         row(site, 0, 0, "base")
     row(0x15C5C, 0, 0, "base")
     row(0x15C82, 0, 120, "row3")
+    row(0x15E1A, 0, 0, "base")
+    row(0x15E40, 0, 120, "row3")
     row(LANGUAGE_WRAPPER_CALL_BASE, 0, 0, "base")
     row(LANGUAGE_WRAPPER_CALL_SELECTED, 0, 120, "row3")
     for site in (0x1739C,):
@@ -430,9 +441,18 @@ def build_assets() -> tuple[Assets, bytes]:
     row(0x16B8E, 0, 120, "row3")
     row(0x17972, 0, 160, "row4")
     row(0x17AAC, 0, 200, "row5")
-    row(0x16B3E, 157, 53, "view1_off", 1, 1, 0, "view1_on")
-    row(0x16B66, 157, 103, "view2_off", 1, 2, 0, "view2_on")
-    row(0x16B8E, 157, 153, "view3_off", 1, 3, 0, "view3_on")
+    # The active stock resource is named mode1_.jpg/mode2_.jpg/mode3_.jpg.
+    # In every path the underscore is byte 17; the inactive resource has a
+    # dot there (mode1.jpg, etc.).  Older builds inspected bytes 1/2/3 and
+    # therefore could repaint the wrong row as selected.
+    row(0x16B3E, 157, 53, "view1_off", 2, 17, ord("_"), "view1_on")
+    row(0x16B66, 157, 103, "view2_off", 2, 17, ord("_"), "view2_on")
+    row(0x16B8E, 157, 153, "view3_off", 2, 17, ord("_"), "view3_on")
+    # These calls redraw the peers after the active measurement view changes.
+    # Their state is known from the branch, so they are always unselected.
+    row(0x16BE8, 157, 53, "view1_off")
+    row(0x16C3C, 157, 53, "view1_off")
+    row(0x16C64, 157, 103, "view2_off")
     row(0x16FBC, 136, 7, "voltage")
     row(0x16FE4, 136, 84, "current")
     row(0x1700C, 136, 162, "temperature")
