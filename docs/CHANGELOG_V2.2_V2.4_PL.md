@@ -61,6 +61,14 @@ To potwierdza, że V2.4 można emulować funkcjonalnie po stronie cyfrowej. Nie 
 - Pełna walidacja RV32 zakończyła się `pass: true`; trzy zapisane tryby dają trzy różne bufory ekranu.
 - Ekran aktualizacji USB pozostaje chińsko-angielski, ponieważ znajduje się w rezydentnym bootloaderze poza zakresem pliku aplikacji zaczynającym się od `0x6400`.
 
+## Aplikacja DMT-99 Spolszczenie 1.0.0 (2026-11-10)
+
+- Dodano otwartoźródłowy interfejs Windows na licencji MIT.
+- Aplikacja przyjmuje wyłącznie zweryfikowany, dostarczony przez użytkownika oryginał V2.4.
+- Wynik V8 jest publikowany dopiero po uzyskaniu oczekiwanej sumy SHA-256.
+- Automatycznie powstają plik do wgrania, oryginał ratunkowy, manifest i raporty etapów.
+- Firmware FNIRSI nie jest dołączane do aplikacji ani pobierane przez nią z internetu.
+
 ## Podstawa analizy
 
 - dostarczone obrazy V2.2 i V2.4;

@@ -13,6 +13,12 @@ Wymagane są Windows, Python 3.11-3.14 i Git for Windows.
 
 Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 
+## Aplikacja spolszczająca
+
+Użytkownik, który chce tylko utworzyć polskie firmware V8, może uruchomić `Uruchom_DMT99_Spolszczenie.bat`. Osobna aplikacja okienkowa sprawdza oryginalny plik V2.4, wykonuje cztery bezpieczne etapy patchowania i tworzy kompletną paczkę z plikiem do wgrania, oryginałem ratunkowym, manifestem oraz sumami SHA-256. Nie wymaga emulatora ani zrzutu W25Q64 i nie łączy się z internetem.
+
+Kod aplikacji jest objęty licencją MIT. Szczegóły: `docs/INSTRUKCJA_APLIKACJI_SPOLSZCZAJACEJ.md`.
+
 ## Stan wersji polskiej
 
 Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Warianty V2–V4 z fabrycznymi symbolami, Polskim domyślnym, English jako drugim językiem i polskim komunikatem ładowania zostały przyjęte przez fizyczny bootloader i sprawdzone na mierniku. V8 udostępnia oba motywy i tłumaczy Motyw 2 bez zapisywania W25Q64. Obejmuje wszystkie dodatkowe ścieżki odświeżania `Pomiar / Rejestracja / Monitor`, które na fizycznym mierniku przywracały niemieckie etykiety, oraz prawidłowo zaznacza aktywny tryb. Poprawia też podgląd Motywu 2 i przejście English → Polski. Pełna walidacja emulatora V8 zakończyła się `pass: true`; V8 wymaga jeszcze końcowego potwierdzenia na fizycznym ekranie.
