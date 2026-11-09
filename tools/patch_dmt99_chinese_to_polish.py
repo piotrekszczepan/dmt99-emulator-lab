@@ -88,7 +88,7 @@ def build_string_pools() -> tuple[list[tuple[int, bytes]], dict[str, int]]:
         if text in addresses:
             continue
         encoded = text.encode("ascii") + b"\0"
-        for (base, size), (_, pool) in zip(STRING_CAVES, pools):
+        for index, ((base, size), (_, pool)) in enumerate(zip(STRING_CAVES, pools)):
             if len(pool) + len(encoded) <= size:
                 addresses[text] = base + len(pool)
                 pool += encoded
@@ -254,8 +254,8 @@ def main() -> None:
         replace_exact(image, call_site, encode_jal(call_site, 0xD964, 1),
                       encode_jal(call_site, theme_reader, 1))
 
-    # Both classic and compact selection handlers: first visible choice stores
-    # index 2 (Polish resources), second choice continues to store index 1.
+    # Both classic and compact language-selection renderers: the first visible
+    # choice writes index 2 (Polish resources), while the second keeps index 1.
     for address in (0x1377C, 0x13E08):
         replace_exact(image, address, bytes.fromhex("8145"), bytes.fromhex("8945"))
 

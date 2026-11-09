@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate DMT-99 V5 with a firmware-rendered Polish Theme 2 menu."""
+"""Validate DMT-99 V6 with preview-safe Polish language and Theme 2."""
 
 from __future__ import annotations
 
@@ -28,18 +28,21 @@ from fw_emulator import Ch32Emulator
 from test_firmware_emulation import ack_packet, battery_raw, reading_packet, settings_image
 
 
-FIRMWARE = PACKAGE / "DMT-99_V2.4_PL_EN_THEME2_PL_V5.BIN"
-BASELINE = PACKAGE / "DMT-99_V2.4_PL_EN_SYMBOLS_THEME1_THEME2_V4.BIN"
+FIRMWARE = PACKAGE / "DMT-99_V2.4_PL_EN_THEME2_PL_V6.BIN"
+BASELINE = PACKAGE / "DMT-99_V2.4_PL_EN_SYMBOLS_THEME1_THEME2_V4C.BIN"
 STOCK_FLASH = RESEARCH / "flashdump" / "dmt99_flash_1.bin"
 LOAD = 0x6400
 PINS = {1: "PC10", 2: "PC11", 3: "PC9", 4: "PC12", 5: "PC8", 6: "PC8"}
 HOOK = 0x27400
 CALL_SITES = (
+    0x15C5C, 0x15C82,
     0x16ACC, 0x16AF0, 0x16B3E, 0x16B66, 0x16B8E,
     0x16F5E, 0x16F84, 0x16FBC, 0x16FE4, 0x1700C,
     0x172AC, 0x172D2, 0x1730C, 0x1739C,
     0x1794C, 0x17972, 0x17A26, 0x17A86, 0x17AAC,
 )
+LANGUAGE_REDRAW_CALL = 0x15D14
+PATCHED_CODE_SITES = CALL_SITES + (LANGUAGE_REDRAW_CALL,)
 PAGE_SEQUENCES = {
     "menu": (6,),
     "progi": (6, 1, 3),
@@ -92,6 +95,14 @@ def measurement_hash(emu: Ch32Emulator) -> str:
     return hashlib.sha256(image.tobytes()).hexdigest()
 
 
+def left_menu_hash(emu: Ch32Emulator) -> str:
+    # The first row is deliberately rendered at y=12 or y=23 depending on
+    # whether the stock right panel has already cleared its top strip.  The
+    # actual language/category content starts below that context-only shift.
+    image = emu.panel.image().crop((0, 40, 131, 240))
+    return hashlib.sha256(image.tobytes()).hexdigest()
+
+
 def open_system(emu: Ch32Emulator) -> None:
     for key in (6, 1, 1, 1, 3):
         press(emu, key)
@@ -119,7 +130,7 @@ def binary_diff_ranges() -> list[dict]:
 
 def binary_changes_confined() -> bool:
     base, candidate = BASELINE.read_bytes(), FIRMWARE.read_bytes()
-    allowed = tuple(range(site - LOAD, site - LOAD + 4) for site in CALL_SITES)
+    allowed = tuple(range(site - LOAD, site - LOAD + 4) for site in PATCHED_CODE_SITES)
     return all(
         index >= len(base) or any(index in region for region in allowed)
         for index in range(max(len(base), len(candidate)))
@@ -157,7 +168,7 @@ def main() -> None:
         candidate_page, candidate_hash = capture_page(
             FIRMWARE, sequence, language=2, layout=1
         )
-        candidate_page.panel.save(PACKAGE / f"emulacja-v5-motyw2-{name}.png")
+        candidate_page.panel.save(PACKAGE / f"emulacja-v6-motyw2-{name}.png")
         candidate_state = state(candidate_page)
         page_states.append(candidate_state)
         page_checks.append({
@@ -178,7 +189,7 @@ def main() -> None:
         FIRMWARE, PAGE_SEQUENCES["menu"], language=2, layout=0
     )
     theme1_state = state(theme1)
-    theme1.panel.save(PACKAGE / "emulacja-v5-motyw1-menu.png")
+    theme1.panel.save(PACKAGE / "emulacja-v6-motyw1-menu.png")
     print("[3/7] Motyw 1", flush=True)
 
     english_checks = []
@@ -204,8 +215,41 @@ def main() -> None:
     for key in (1, 5):
         press(selected_theme2, key)
     selected_theme2_state = state(selected_theme2)
-    selected_theme2.panel.save(PACKAGE / "emulacja-v5-wybrany-motyw2.png")
+    selected_theme2.panel.save(PACKAGE / "emulacja-v6-wybrany-motyw2.png")
     print("[5/7] wybor Motywu 2", flush=True)
+
+    transition_checks = []
+    transition_states = []
+    for layout in (0, 1):
+        reference = make(language=2, layout=layout)
+        open_system(reference)
+
+        transition = make(language=2, layout=layout)
+        open_system(transition)
+        for _ in range(3):
+            press(transition, 1)
+        press(transition, 5)
+        english_state = state(transition)
+        press(transition, 2)
+        press(transition, 5)
+        polish_state = state(transition)
+        transition.panel.save(
+            PACKAGE / f"emulacja-v6-english-polski-motyw{layout + 1}.png"
+        )
+        transition_states.extend((english_state, polish_state))
+        transition_checks.append({
+            "layout": layout,
+            "english_selected": english_state["stored_language"] == 1
+            and english_state["resource_prefix"] == "menu/english/",
+            "polish_restored": polish_state["stored_language"] == 2
+            and polish_state["resource_prefix"] == "menu/german/",
+            "polish_left_menu_matches_clean_polish_reference":
+                left_menu_hash(transition) == left_menu_hash(reference),
+            "healthy": polish_state["fault"] is None
+            and not polish_state["halted"]
+            and polish_state["main_loop_entered"],
+        })
+        print(f"[5/7] English -> Polski, Motyw {layout + 1}", flush=True)
 
     polish_charging_baseline = make(BASELINE, language=2, layout=1)
     polish_charging_baseline.charging = True
@@ -214,7 +258,7 @@ def main() -> None:
     polish_charging.charging = True
     polish_charging.run(seconds=2.5)
     polish_charging_state = state(polish_charging)
-    polish_charging.panel.save(PACKAGE / "emulacja-v5-ladowanie-pl.png")
+    polish_charging.panel.save(PACKAGE / "emulacja-v6-ladowanie-pl.png")
 
     english_charging_baseline = make(BASELINE, language=1, layout=1)
     english_charging_baseline.charging = True
@@ -248,7 +292,7 @@ def main() -> None:
     all_states = [
         default_state, theme1_state, selected_theme2_state,
         polish_charging_state, english_charging_state,
-        *page_states, *english_states,
+        *page_states, *english_states, *transition_states,
     ]
     healthy = all(
         item["fault"] is None and not item["halted"] and item["main_loop_entered"]
@@ -272,6 +316,18 @@ def main() -> None:
     )
     theme1_unchanged = theme1_hash == theme1_baseline_hash
     english_unchanged = all(item["unchanged"] for item in english_checks)
+    language_transitions = all(
+        item["english_selected"] and item["polish_restored"]
+        and item["polish_left_menu_matches_clean_polish_reference"]
+        and item["healthy"]
+        for item in transition_checks
+    )
+    theme2_selection_polish = (
+        selected_theme2_state["stored_layout"] == 1
+        and left_menu_hash(selected_theme2) == left_menu_hash(
+            capture_page(FIRMWARE, PAGE_SEQUENCES["system"], language=2, layout=1)[0]
+        )
+    )
     no_extra_writes = all(
         item["w25q_erases"] == theme1_state["w25q_erases"]
         and item["w25q_programs"] == theme1_state["w25q_programs"]
@@ -281,18 +337,19 @@ def main() -> None:
     all_call_sites_changed = all(
         BASELINE.read_bytes()[site - LOAD:site - LOAD + 4]
         != FIRMWARE.read_bytes()[site - LOAD:site - LOAD + 4]
-        for site in CALL_SITES
+        for site in PATCHED_CODE_SITES
     )
     passed = (
         healthy and default_polish and both_themes and polish_pages
         and theme1_unchanged and english_unchanged and symbols_unchanged
+        and language_transitions and theme2_selection_polish
         and charging_polish and charging_english and no_extra_writes
         and confined and all_call_sites_changed
     )
     report = {
         "definition": "Polish default, English second, Polish Theme 1 and firmware-rendered Polish Theme 2",
         "pass": passed,
-        "scope": "RV32 emulator and byte confinement; V5 Theme 2 still requires physical-display confirmation",
+        "scope": "RV32 emulator and byte confinement; V6 still requires physical-display confirmation",
         "firmware": str(FIRMWARE),
         "firmware_sha256": hashlib.sha256(FIRMWARE.read_bytes()).hexdigest().upper(),
         "healthy": healthy,
@@ -301,6 +358,8 @@ def main() -> None:
         "polish_theme2_pages_replaced": polish_pages,
         "theme1_unchanged_from_v4": theme1_unchanged,
         "english_theme2_unchanged_from_v4": english_unchanged,
+        "english_to_polish_transition_checked_in_both_themes": language_transitions,
+        "theme2_selection_repaints_polish_left_menu": theme2_selection_polish,
         "stock_measurement_rendering_unchanged_from_v4_in_both_themes": symbols_unchanged,
         "polish_charging_screen_unchanged_from_working_v4": charging_polish,
         "english_charging_caption_unchanged": charging_english,
@@ -315,6 +374,7 @@ def main() -> None:
         "english_charging_theme2": english_charging_state,
         "polish_theme2_pages": page_checks,
         "english_theme2_pages": english_checks,
+        "language_transition_checks": transition_checks,
         "symbol_checks": symbol_checks,
     }
     (PACKAGE / "PL_THEME2_VALIDATION.json").write_text(

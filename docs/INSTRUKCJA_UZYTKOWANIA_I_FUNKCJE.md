@@ -13,7 +13,7 @@
 
 Automatyczne rozpoznawanie, napięcie DC/AC, prąd DC/AC w A i mA/µA, rezystancja, ciągłość, dioda, pojemność, częstotliwość, temperatura °C/°F, NCV, LIVE, HOLD, REL, rejestracja trendu, progi i historia do 30 rekordów.
 
-Wersja V5 zachowuje fabryczne symbole, Polski jako język domyślny oraz English jako drugi język. Dostępne są oba motywy. Motyw 2 normalnie pobiera niemieckie JPEG-y z W25Q64, lecz V5 — wyłącznie dla języka polskiego — omija ustalone grafiki menu i rysuje krótkie polskie teksty z aplikacji. Pamięć W25Q64, ekrany pomiarowe i kalibracja nie są modyfikowane przez ten patch. Motyw 2 został sprawdzony w emulatorze; fizyczny ekran wymaga jeszcze potwierdzenia.
+Wersja V6 zachowuje fabryczne symbole, Polski jako język domyślny oraz English jako drugi język. Dostępne są oba motywy. Motyw 2 normalnie pobiera niemieckie JPEG-y z W25Q64, lecz V6 — wyłącznie dla języka polskiego — omija ustalone grafiki menu i rysuje krótkie polskie teksty z aplikacji. Poprawiono też niemiecki panel podczas zatwierdzania Motywu 2 oraz chińską lewą kolumnę po przejściu English → Polski. Pamięć W25Q64, ekrany pomiarowe i kalibracja nie są modyfikowane przez ten patch. Pełny test emulatora V6 zakończył się wynikiem `pass: true`; fizyczny ekran wymaga jeszcze potwierdzenia.
 
 ## Wycofana wersja
 

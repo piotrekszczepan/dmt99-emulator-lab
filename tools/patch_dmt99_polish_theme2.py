@@ -32,17 +32,22 @@ from patch_dmt99_embedded_polish import (
 IMAGE_RENDER = 0x678C
 FILL_RECT = 0x8A02
 HOOK = 0x27400
+LANGUAGE_WRAPPER = 0x275D0
 TABLE = 0x27700
-OPS = 0x27900
+OPS = 0x27A00
 STRINGS = 0x28600
 CODE_LIMIT = 0x30000
 
 CALL_SITES = (
+    0x15C5C, 0x15C82,
     0x16ACC, 0x16AF0, 0x16B3E, 0x16B66, 0x16B8E,
     0x16F5E, 0x16F84, 0x16FBC, 0x16FE4, 0x1700C,
     0x172AC, 0x172D2, 0x1730C, 0x1739C,
     0x1794C, 0x17972, 0x17A26, 0x17A86, 0x17AAC,
 )
+LANGUAGE_REDRAW_CALL = 0x15D14
+LANGUAGE_WRAPPER_CALL_BASE = LANGUAGE_WRAPPER + 64
+LANGUAGE_WRAPPER_CALL_SELECTED = LANGUAGE_WRAPPER + 84
 
 BLACK = 0x0000
 GRAY = 0x39E7
@@ -127,7 +132,21 @@ def build_hook() -> bytes:
     a.emit(itype(0x13, 18, 0, 12, 0))  # s2 = y
     a.emit(itype(0x13, 22, 0, 1, 0))   # s6 = original ra
 
-    # Active only for language index 2 (Polish) and layout index 1 (Theme 2).
+    # The settings screen previews a language/theme before committing it to
+    # 0x2000003e.  Therefore the stored indices are stale exactly while the
+    # user highlights Theme 2 or changes English -> Polski.  Detect the real
+    # Polish resource path (menu/german/) at these Theme-2-only call sites.
+    # This covers the live Theme-2 preview before its stored layout bit changes.
+    for offset, character in ((5, "g"), (6, "e"), (7, "r")):
+        a.emit(itype(0x03, REG["t0"], 4, 8, offset))
+        a.emit(itype(0x13, REG["t1"], 0, REG["zero"], ord(character)))
+        a.b(1, REG["t0"], REG["t1"], "stored_check")
+    a.j("lookup_start")
+
+    # A confirmed Theme 2 and the About body use paths that are not always
+    # distinguishable at the call boundary.  Accept the stored Polish+Theme2
+    # state as well.  English still falls through unchanged.
+    a.label("stored_check")
     a.emit(lui(REG["t0"], 0x20000))
     a.emit(itype(0x03, 20, 5, REG["t0"], 0x3E))
     a.emit(itype(0x13, REG["t0"], 7, 20, 7))
@@ -137,7 +156,9 @@ def build_hook() -> bytes:
     a.emit(itype(0x13, REG["t0"], 7, REG["t0"], 3))
     a.emit(itype(0x13, REG["t1"], 0, REG["zero"], 1))
     a.b(1, REG["t0"], REG["t1"], "fallback")
+    a.j("lookup_start")
 
+    a.label("lookup_start")
     a.la(19, TABLE)
     a.label("lookup")
     a.emit(itype(0x03, REG["t0"], 2, 19, 0))
@@ -217,6 +238,44 @@ def build_hook() -> bytes:
                         (18, 16), (9, 20), (8, 24), (1, 28)):
         a.emit(itype(0x03, reg, 2, 2, offset))
     a.emit(itype(0x13, 2, 0, 2, 32))
+    a.emit(itype(0x67, REG["zero"], 0, 1, 0))
+    return a.build()
+
+
+def build_language_wrapper(base_path: int, selected_path: int) -> bytes:
+    """Finish the stock repaint, then replace its Theme-2 left menu in Polish."""
+    a = Assembler(LANGUAGE_WRAPPER)
+    a.emit(itype(0x13, 2, 0, 2, -16))
+    a.emit(stype(2, 1, 12))
+    a.call(0x153D0)
+
+    a.emit(lui(REG["t0"], 0x20000))
+    a.emit(itype(0x03, 7, 5, REG["t0"], 0x3E))
+    a.emit(itype(0x13, REG["t0"], 7, 7, 7))
+    a.emit(itype(0x13, REG["t1"], 0, REG["zero"], 2))
+    a.b(1, REG["t0"], REG["t1"], "done")
+    a.emit(itype(0x13, REG["t0"], 5, 7, 10))
+    a.emit(itype(0x13, REG["t0"], 7, REG["t0"], 3))
+    a.emit(itype(0x13, REG["t1"], 0, REG["zero"], 1))
+    a.b(1, REG["t0"], REG["t1"], "done")
+
+    a.la(10, base_path)
+    a.emit(itype(0x13, 11, 0, REG["zero"], 0))
+    a.emit(itype(0x13, 12, 0, REG["zero"], 0))
+    if a.pc != LANGUAGE_WRAPPER_CALL_BASE:
+        raise ValueError("unexpected base redraw call address")
+    a.call(HOOK)
+
+    a.la(10, selected_path)
+    a.emit(itype(0x13, 11, 0, REG["zero"], 0))
+    a.emit(itype(0x13, 12, 0, REG["zero"], 120))
+    if a.pc != LANGUAGE_WRAPPER_CALL_SELECTED:
+        raise ValueError("unexpected selected-row redraw call address")
+    a.call(HOOK)
+
+    a.label("done")
+    a.emit(itype(0x03, 1, 2, 2, 12))
+    a.emit(itype(0x13, 2, 0, 2, 16))
     a.emit(itype(0x67, REG["zero"], 0, 1, 0))
     return a.build()
 
@@ -359,6 +418,10 @@ def build_assets() -> tuple[Assets, bytes]:
 
     for site in (0x16ACC, 0x16F5E, 0x172AC, 0x1794C, 0x17A86):
         row(site, 0, 0, "base")
+    row(0x15C5C, 0, 0, "base")
+    row(0x15C82, 0, 120, "row3")
+    row(LANGUAGE_WRAPPER_CALL_BASE, 0, 0, "base")
+    row(LANGUAGE_WRAPPER_CALL_SELECTED, 0, 120, "row3")
     for site in (0x1739C,):
         row(site, 0, 0, "base_low_top")
     row(0x16AF0, 0, 0, "row0")
@@ -378,6 +441,8 @@ def build_assets() -> tuple[Assets, bytes]:
     row(0x16B8E, 131, 0, "reset_dialog")
     row(0x16B8E, 143, 147, "reset_button", 2, 21, ord("2"), "return_button")
     rows_data.append(b"\0" * 20)
+    a.string("menu/german/mode_set.jpg")
+    a.string("menu/german/install.jpg")
     return a, b"".join(rows_data)
 
 
@@ -402,10 +467,16 @@ def main() -> None:
     if source_end > HOOK:
         raise SystemExit(f"source ends at 0x{source_end:X}, overlaps Theme 2 hook")
 
-    hook = build_hook()
-    if HOOK + len(hook) > TABLE:
-        raise SystemExit("Theme 2 hook does not fit before its table")
     assets, table = build_assets()
+    hook = build_hook()
+    if HOOK + len(hook) > LANGUAGE_WRAPPER:
+        raise SystemExit("Theme 2 hook does not fit before language wrapper")
+    language_wrapper = build_language_wrapper(
+        assets.string_addresses["menu/german/mode_set.jpg"],
+        assets.string_addresses["menu/german/install.jpg"],
+    )
+    if LANGUAGE_WRAPPER + len(language_wrapper) > TABLE:
+        raise SystemExit("language wrapper does not fit before its table")
     if TABLE + len(table) > OPS:
         raise SystemExit("Theme 2 call table does not fit")
     if OPS + len(assets.ops) > STRINGS:
@@ -426,7 +497,16 @@ def main() -> None:
             "unexpected Theme 2 image calls at " + ", ".join(stock_call_mismatches)
         )
 
+    language_offset = LANGUAGE_REDRAW_CALL - LOAD
+    language_expected = encode_jal(LANGUAGE_REDRAW_CALL, 0x153D0)
+    if image[language_offset:language_offset + 4] != language_expected:
+        raise SystemExit("unexpected post-language repaint call")
+    image[language_offset:language_offset + 4] = encode_jal(
+        LANGUAGE_REDRAW_CALL, LANGUAGE_WRAPPER
+    )
+
     write_at(image, HOOK, hook)
+    write_at(image, LANGUAGE_WRAPPER, language_wrapper)
     write_at(image, TABLE, table)
     write_at(image, OPS, assets.ops)
     write_at(image, STRINGS, assets.strings)
@@ -442,11 +522,18 @@ def main() -> None:
         "source_sha256": hashlib.sha256(source).hexdigest().upper(),
         "output_sha256": hashlib.sha256(image).hexdigest().upper(),
         "hook": hex(HOOK),
+        "language_wrapper": hex(LANGUAGE_WRAPPER),
         "table": hex(TABLE),
         "operations": hex(OPS),
         "strings": hex(STRINGS),
         "patched_call_sites": [hex(x) for x in CALL_SITES],
-        "active_only_when": {"language_index": 2, "layout_index": 1},
+        "patched_post_language_repaint_call": hex(LANGUAGE_REDRAW_CALL),
+        "active_when": {
+            "theme2_resource_prefix": "menu/german/",
+            "stored_state": {"language_index": 2, "layout_index": 1},
+            "preview_safe_before_settings_commit": True,
+            "english_to_polish_redraw": True,
+        },
         "w25q64_modified": False,
         "measurement_rendering_modified": False,
         "theme1_modified": False,
