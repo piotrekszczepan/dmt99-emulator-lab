@@ -15,14 +15,14 @@ Repozytorium celowo nie zawiera firmowego firmware ani zrzutu pamięci FNIRSI.
 
 ## Stan wersji polskiej
 
-Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Wariant V2 z fabrycznymi symbolami, Polskim domyślnym, English jako drugim językiem, Motywem 1 oraz dopracowanymi progami i historią został 8 listopada 2026 przyjęty przez fizyczny bootloader i sprawdzony na mierniku. Jedynym pozostałym niemieckim elementem był komunikat ładowania. V3 zastępuje go polskim tekstem rysowanym przez fabryczny renderer, bez zapisu W25Q64; V3 przeszła emulator, ale wymaga jeszcze sprawdzenia tego ekranu na sprzęcie.
+Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił zakłócenia grafiki, których emulator nie wykrył. Warianty V2–V4 z fabrycznymi symbolami, Polskim domyślnym, English jako drugim językiem i polskim komunikatem ładowania zostały przyjęte przez fizyczny bootloader i sprawdzone na mierniku. V5 ponownie udostępnia oba motywy i tłumaczy Motyw 2 bez zapisywania W25Q64: tylko dla polskiego slotu przechwytuje 19 wywołań niemieckich JPEG-ów menu i rysuje krótkie napisy fabrycznym rendererem ASCII. Pełna walidacja emulatora V5 zakończyła się `pass: true`; fizyczny Motyw 2 wymaga jeszcze sprawdzenia na mierniku.
 
 ## Krótka instrukcja
 
 1. Wybierz firmware i W25Q64, a następnie kliknij **Uruchom (4 s)**.
 2. Sterowanie menu: **HOLD/REL** — poprzednia pozycja, **mA/A** — następna, **VΩHz** — wejdź, **NCV/LIVE** — wstecz, **AUTO/MENU krótko** — zatwierdź, **AUTO/MENU długo** — otwórz lub wyjdź. Na narysowanym AUTO/MENU prawy przycisk myszy oznacza długie naciśnięcie.
 3. W sekcji **Sondy pomiarowe** wybierz napięcie/prąd AC lub DC, wpisz wartość i kliknij **Podaj wartość na sondy**.
-4. **Szybki test** sprawdza start i reakcję na pomiar. **Test Polski/English** sprawdza oba języki i Motyw 1.
+4. **Szybki test** sprawdza start i reakcję na pomiar. **Test Polski/English** sprawdza oba języki; oddzielny walidator V5 w `tools/validate_dmt99_theme2.py` sprawdza oba motywy.
 5. **Zapisz zrzut PNG** zapisuje aktualny ekran.
 
 ## Co jest emulowane
@@ -44,9 +44,9 @@ Wariant z pełnymi nazwami pomiarów został wycofany: fizyczny DMT-99 ujawnił 
 
 Szczegółowa tabela przycisków znajduje się w `docs/INSTRUKCJA_STEROWANIA_MENU.md`, a opis wszystkich funkcji, ograniczeń polskich znaków i oscyloskopu w `docs/INSTRUKCJA_UZYTKOWANIA_I_FUNKCJE.md`.
 
-Narzędzia w `tools/` budują wariant Polski/English z fabrycznymi symbolami i Motywem 1. Nie zawierają firmware. Kolejność uruchamiania, ostrzeżenie o wycofanym eksperymencie oraz oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
+Narzędzia w `tools/` budują wariant Polski/English z fabrycznymi symbolami oraz polskim Motywem 1 i Motywem 2. Nie zawierają firmware. Kolejność uruchamiania, ostrzeżenie o wycofanym eksperymencie oraz oczekiwane sumy zawiera `docs/BUDOWANIE_WERSJI_PL.md`.
 
-Ostrzeżenie ładowania jest plikiem JPEG w zewnętrznej W25Q64. Patch V3 nie zmienia tej pamięci: dla polskiego slotu omija niemiecki JPEG i rysuje cztery krótkie linie ASCII, zachowując fabryczną ikonę ostrzeżenia i wtyczki. English nadal wyświetla oryginalny angielski JPEG.
+Ostrzeżenie ładowania i etykiety Motywu 2 są plikami JPEG w zewnętrznej W25Q64. Patche V3/V5 nie zmieniają tej pamięci. Dla polskiego slotu omijają odpowiednie niemieckie JPEG-i i rysują krótkie napisy ASCII. English nadal wyświetla oryginalne angielskie zasoby.
 
 ## Test bez GUI
 
